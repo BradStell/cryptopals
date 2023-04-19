@@ -1,22 +1,3 @@
-////////////////////////////////////////////////////////////////////////
-//////////       Convert hex to base64
-////////////////////////////////////////////////////////////////////////
-
-const base64IndexMap: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-
-function start() {
-  // str to byte funcs
-  console.assert( strToBytes('Sun').toString() === new Uint8Array(Buffer.from('Sun')).toString(), 'Converting %s to bytes failed', 'Sun' )
-  console.assert( hexToBytes('49276d').toString() === new Uint8Array(Buffer.from('49276d', 'hex')).toString(), 'Converting %s to bytes failed', '49276d' )
-
-  // base64 encoding
-  console.assert( 'Uw==' === toBase64(strToBytes('S')), 'Encoding did not work for %s', 'S' )
-  console.assert( 'U3U=' === toBase64(strToBytes('Su')), 'Encoding did not work for %s', 'Su' )
-  console.assert( 'U3Vu' === toBase64(strToBytes('Sun')), 'Encoding did not work for %s', 'Sun' )
-  console.assert( 'SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t' === toBase64(hexToBytes('49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d')), 'Encoding did not work for %s', '49276d206b696c6c696e6...' )
-  console.assert( 'TWFueSBoYW5kcyBtYWtlIGxpZ2h0IHdvcmsu' === toBase64(strToBytes('Many hands make light work.')), 'Encoding did not work for %s', 'Many ha...' )
-}
-
 /**
  * Maps a hex digit to it's decimal counterpart
  */
@@ -48,7 +29,7 @@ const hexValueLookup: Record<string, number> = {
 /**
  * Maps a hex string into its bytes
  */
-function hexToBytes(hexStr: string): Uint8Array {
+export function hexToBytes(hexStr: string): Uint8Array {
   const bytes: Uint8Array = new Uint8Array(hexStr.length / 2)
   for (let i = 0; i < hexStr.length; i+=2) {
     bytes[i/2] = (16 * hexValueLookup[hexStr[i]]) + hexValueLookup[hexStr[i+1]]
@@ -57,9 +38,44 @@ function hexToBytes(hexStr: string): Uint8Array {
 }
 
 /**
- * Maps a string to its bytes
+ * Maps a decimal digit to it's hex digit
  */
-function strToBytes(str: string): Uint8Array {
+const hexValueReverseLookup: Record<number, string> = {
+  0: '0',
+  1: '1',
+  2: '2',
+  3: '3',
+  4: '4',
+  5: '5',
+  6: '6',
+  7: '7',
+  8: '8',
+  9: '9',
+  10: 'a',
+  11: 'b',
+  12: 'c',
+  13: 'd',
+  14: 'e',
+  15: 'f',
+}
+
+/**
+ * Encodes a byte array into a hex string
+ */
+export function bytesToHex(bytes: Uint8Array): string {
+  let str: string = ''
+  for (let i = 0; i < bytes.length; i++) {
+    const a = hexValueReverseLookup[Math.floor(bytes[i] / 16)]
+    const b = hexValueReverseLookup[bytes[i] % 16]
+    str += (a + b)
+  }
+  return str
+}
+
+/**
+ * Decodes a ascii string to a byte array
+ */
+export function strToBytes(str: string): Uint8Array {
   const bytes: Uint8Array = new Uint8Array(str.length)
   for (let i = 0; i < str.length; i++) {
     bytes[i] = str[i].charCodeAt(0)
@@ -68,9 +84,14 @@ function strToBytes(str: string): Uint8Array {
 }
 
 /**
- * encodes a byte array into base64 string
+ * base64 characters in index locations
  */
-function toBase64(bytes: Uint8Array): string {
+const base64IndexMap: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+/**
+ * Encodes a byte array into base64 string
+ */
+export function toBase64(bytes: Uint8Array): string {
   let outString: string = ''
   const divBy3Len = Math.floor((bytes.length / 3)) * 3
 
@@ -98,5 +119,3 @@ function toBase64(bytes: Uint8Array): string {
 
   return outString
 }
-
-start()

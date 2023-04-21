@@ -119,3 +119,15 @@ export function toBase64(bytes: Uint8Array): string {
 
   return outString
 }
+
+export function xor(left: string, right: string): string {
+  const lbytes: Uint8Array = hexToBytes(left)
+  const rbytes: Uint8Array = hexToBytes(right)
+
+  const out = new Uint8Array(lbytes.length)
+  for (let i = 0; i < lbytes.length; i++) {
+    out[i] = lbytes[i] ^ rbytes[i]
+  }
+
+  return bytesToHex(out)
+}

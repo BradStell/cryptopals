@@ -131,3 +131,86 @@ export function xor(left: string, right: string): string {
 
   return bytesToHex(out)
 }
+
+/**
+ * Things to score:
+ *  • needs to have spaces
+ *    - ratio of spaces to phrase length
+ *  • probably not too many numbers
+ *    - more letters than numbers
+ *  • only ascii characters
+ *    - only printable characters
+ *  • avg word length
+ * 
+ * extra things we could look into
+ *  • check for repeating same chars
+ *  • check character frequency map
+ */
+export function plainTextScore(bytes: Uint8Array): number {
+  let score: number = 1
+
+  // only printable ascii characters
+  // The first 32 characters in the ASCII-table are unprintable control codes and are used to control peripherals such as printers. 
+  // 0 -31 are non printable
+  //  - most likely not a real sentence (return 0)
+  // 32-127 are printable (127 is delete)
+  //  - very high score
+  // 128-255 are extended ascii (mostly symbols but there are quotes and other commonly seen characters)
+  //  - small score but not a total reject
+  let characterMult: number = 0
+  for (const byte of bytes) {
+    // non printable characters
+    // 9 10 and 13 should be excluded
+    if (0 <= byte && byte <= 31 && byte !== 9 && byte !== 10 && byte !== 13) {
+      characterMult += -100
+    }
+
+    // 48 - 57 are numbers
+    if (48 <= byte && byte <= 57) {
+      characterMult += 0.3
+    }
+
+    // 65 - 90 are cap letters
+    if (65 <= byte && byte <= 90) {
+      characterMult += 0.4
+    }
+
+    // 97 - 122 low letters
+    if (97 <= byte && byte <= 122) {
+      characterMult += 0.5
+    }
+
+    // printable characters (keyboard chars)
+    if (32 <= byte && byte <= 126) {
+      characterMult += 0.5
+    }
+
+    if (127 <= byte && byte <= 255) {
+      characterMult += 0.01
+    }
+  }
+  score *= characterMult
+
+  // ratio of spaces to phrase size
+  // 6 / 34 = 0.17647058823529413
+  // 69 / 405 = 0.17037037037037037
+  // 104 / 585 = 0.17777777777777778
+  // 2,697 / 14,966 = 0.18020847253775224
+  // 1.65 - 1.85
+  let numSpaces: number = 0
+  for (const byte of bytes) {
+    if (byte === 32) {
+      numSpaces++
+    }
+  }
+
+  const spaceToSizeRatio = numSpaces / bytes.length
+  if (.165 <= spaceToSizeRatio && spaceToSizeRatio <= .185) {
+    // in the golden ratio
+    score *= 10
+  } else {
+    score *= 0.85
+  }
+
+  return score
+}

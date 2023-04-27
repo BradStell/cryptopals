@@ -6,6 +6,7 @@
   "configurations": [
     {
       "name": "Current TS File",
+      "runtimeVersion": "18",
       "type": "node",
       "request": "launch",
       "args": [ "${relativeFile}" ],

@@ -214,3 +214,15 @@ export function plainTextScore(bytes: Uint8Array): number {
 
   return score
 }
+
+export function repeatingKeyXor(phrase: string, key: string): string {
+  const bytes: Uint8Array = strToBytes(phrase)
+  const keyBytes: Uint8Array = strToBytes(key)
+
+  const out = new Uint8Array(bytes.length)
+  for (let i = 0; i < phrase.length; i++) {
+    out[i] = bytes[i] ^ keyBytes[i % 3]
+  }
+
+  return bytesToHex(out)
+}

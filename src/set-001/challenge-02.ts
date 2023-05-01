@@ -2,7 +2,7 @@
 //////////       XOR two same length buffers
 ////////////////////////////////////////////////////////////////////////
 
-import { xor } from "../crypto"
+import { bytesToHex, hexToBytes, xor } from "../crypto"
 
 
 function start() {
@@ -12,9 +12,9 @@ function start() {
   // expected output as hex encoded string
   const expectedOut = '746865206b696420646f6e277420706c6179'
 
-  const res: string = xor(inone, intwo)
+  const res: Uint8Array = xor(hexToBytes(inone), hexToBytes(intwo))
 
-  console.assert( res === expectedOut, 'xor failed with result "%s"', res )
+  console.assert( bytesToHex(res) === expectedOut, 'xor failed with result "%s"', res )
 }
 
 start()

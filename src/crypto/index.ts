@@ -120,16 +120,13 @@ export function toBase64(bytes: Uint8Array): string {
   return outString
 }
 
-export function xor(left: string, right: string): string {
-  const lbytes: Uint8Array = hexToBytes(left)
-  const rbytes: Uint8Array = hexToBytes(right)
-
-  const out = new Uint8Array(lbytes.length)
-  for (let i = 0; i < lbytes.length; i++) {
-    out[i] = lbytes[i] ^ rbytes[i]
+export function xor(left: Uint8Array, right: Uint8Array): Uint8Array {
+  const out = new Uint8Array(left.length)
+  for (let i = 0; i < left.length; i++) {
+    out[i] = left[i] ^ right[i]
   }
 
-  return bytesToHex(out)
+  return out
 }
 
 /**
@@ -162,30 +159,35 @@ export function plainTextScore(bytes: Uint8Array): number {
     // non printable characters
     // 9 10 and 13 should be excluded
     if (0 <= byte && byte <= 31 && byte !== 9 && byte !== 10 && byte !== 13) {
-      characterMult += -100
+      characterMult += -10
     }
 
     // 48 - 57 are numbers
-    if (48 <= byte && byte <= 57) {
-      characterMult += 0.3
+    else if (48 <= byte && byte <= 57) {
+      characterMult += 0.1
     }
 
     // 65 - 90 are cap letters
-    if (65 <= byte && byte <= 90) {
-      characterMult += 0.4
+    else if (65 <= byte && byte <= 90) {
+      characterMult += 3
     }
 
     // 97 - 122 low letters
-    if (97 <= byte && byte <= 122) {
-      characterMult += 0.5
+    else if (97 <= byte && byte <= 122) {
+      characterMult += 10
+    }
+
+    // space
+    else if (byte === 32) {
+      characterMult += 4
     }
 
     // printable characters (keyboard chars)
-    if (32 <= byte && byte <= 126) {
-      characterMult += 0.5
+    else if (33 <= byte && byte <= 126) {
+      characterMult += 0.1
     }
 
-    if (127 <= byte && byte <= 255) {
+    else if (127 <= byte && byte <= 255) {
       characterMult += 0.01
     }
   }
@@ -209,20 +211,108 @@ export function plainTextScore(bytes: Uint8Array): number {
     // in the golden ratio
     score *= 10
   } else {
-    score *= 0.85
+    // score *= 0.85
   }
 
   return score
 }
 
-export function repeatingKeyXor(phrase: string, key: string): string {
-  const bytes: Uint8Array = strToBytes(phrase)
-  const keyBytes: Uint8Array = strToBytes(key)
-
-  const out = new Uint8Array(bytes.length)
+export function repeatingKeyXor(phrase: Uint8Array, key: Uint8Array): Uint8Array {
+  const out = new Uint8Array(phrase.length)
   for (let i = 0; i < phrase.length; i++) {
-    out[i] = bytes[i] ^ keyBytes[i % 3]
+    out[i] = phrase[i] ^ key[i % 3]
   }
 
-  return bytesToHex(out)
+  return out
+}
+
+export function hammingDist(left: Uint8Array, right: Uint8Array): number {
+  let num_diff_bits: number = 0
+  for (let i = 0; i < left.length; i++) {
+    const diffBits = left[i] ^ right[i]
+    for (let b = 0; b < 8; b++) {
+      num_diff_bits += ((diffBits >> b) & 0x01)
+    }
+  }
+  return num_diff_bits
+}
+
+export function chunk(chuck_size: number, data: Uint8Array): Uint8Array[] {
+  const chunked: Uint8Array[] = []
+  const remaining = data.length % chuck_size
+
+  for (let i = 0; i < (data.length - remaining); i+= chuck_size) {
+    const block: Uint8Array = new Uint8Array(chuck_size)
+    for (let j = 0; j < chuck_size; j++) {
+      block[j] = data[i+j]
+    }
+    chunked.push(block)
+  }
+
+  for (let i = data.length - remaining; i < data.length; i++) {
+    const block: Uint8Array = new Uint8Array(remaining)
+    for (let j = 0; j < remaining; j++) {
+      block[j] = data[i+j]
+    }
+    chunked.push(block)
+  }
+
+  return chunked
+}
+
+export function chunk_ints(chuck_size: number, data: number[]): number[][] {
+  const chunked: number[][] = []
+  const remaining = data.length % chuck_size
+  for (let i = 0; i < (data.length - remaining); i+= chuck_size) {
+    const block: number[] = new Array(chuck_size).fill(0)
+    for (let j = 0; j < chuck_size; j++) {
+      block[j] = data[i+j]
+    }
+    chunked.push(block)
+  }
+
+  for (let i = data.length - remaining; i < data.length; i++) {
+    const block: number[] = new Array(remaining)
+    for (let j = 0; j < remaining; j++) {
+      block[j] = data[i+j]
+    }
+    chunked.push(block)
+  }
+
+  return chunked
+}
+
+export function transpose(matrix: Uint8Array[]): Uint8Array[] {
+  const rowLength: number = matrix[0].length
+  const transposed: Uint8Array[] = new Array(rowLength)
+
+  // fill up an empty shell to put results
+  for (let i = 0; i < rowLength; i++) {
+    transposed[i] = new Uint8Array(matrix.length)
+  }
+  for (let i = 0; i < matrix.length; i++) {
+    for (let j = 0; j < rowLength; j++) {
+      transposed[j][i] = matrix[i][j]
+    }
+  }
+  return transposed
+}
+
+export function transpose_ints(matrix: number[][]): number[][] {
+  const rowLength: number = matrix[0].length
+  const transposed: number[][] = new Array(rowLength)
+
+  // fill up an empty shell to put results
+  for (let i = 0; i < rowLength; i++) {
+    transposed[i] = new Array(matrix.length)
+  }
+
+  // transpose matrix into new shell
+  for (let i = 0; i < matrix.length; i++) {
+    for (let j = 0; j < rowLength; j++) {
+      transposed[j][i] = matrix[i][j]
+    }
+  }
+
+  return transposed
 }

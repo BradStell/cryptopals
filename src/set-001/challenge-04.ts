@@ -1,10 +1,17 @@
+////////////////////////////////////////////////////////////////////////
+//////////       Detect single-character XOR
+////////////////////////////////////////////////////////////////////////
+
+/// One of the 60-character hex encoded strings in the file 4.txt has been encrypted by single-character XOR.
+/// Find it
+
 import { FileHandle, constants, open } from 'node:fs/promises'
 
-import { bytesToHex, hexToBytes, plainTextScore, xor } from '../crypto'
+import { hexToBytes, plainTextScore, xor } from '../crypto'
 
 interface Phrase {
   score: number
-  hex: string
+  val: Uint8Array
   ascii: string
 }
 
@@ -13,25 +20,25 @@ async function start() {
 
   const highPhrase: Phrase = {
     score: -Infinity,
-    hex: '',
+    val: new Uint8Array(),
     ascii: ''
   }
 
   for await (const line of fh.readLines()) {
     for (let i = 0; i <= 255; i++) {
       const key: Uint8Array = new Uint8Array(line.length / 2).fill(i)
-      const res: string = xor(line, bytesToHex(key))
-      const score: number = plainTextScore(hexToBytes(res))
+      const res: Uint8Array = xor(hexToBytes(line), key)
+      const score: number = plainTextScore(res)
   
       if (score > highPhrase.score) {
         highPhrase.score = score
-        highPhrase.hex = res
-        highPhrase.ascii = Buffer.from(hexToBytes(res)).toString('ascii')
+        highPhrase.val = res
+        highPhrase.ascii = Buffer.from(res).toString('ascii')
       }
     }
   }
 
-  console.log(highPhrase)
+  console.log(highPhrase.ascii)
 }
 
 start()

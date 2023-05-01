@@ -6,7 +6,7 @@ import { bytesToHex, hexToBytes, plainTextScore, xor } from '../crypto'
 
 interface Phrase {
   score: number
-  hex: string
+  val: Uint8Array
 }
 
 function start() {
@@ -15,23 +15,23 @@ function start() {
 
   const highPhrase: Phrase = {
     score: 0,
-    hex: '',
+    val: new Uint8Array()
   }
 
   for (let i = 0; i <= 255; i++) {
     const key: Uint8Array = new Uint8Array(input.length / 2).fill(i)
-    const res: string = xor(input, bytesToHex(key))
-    const score: number = plainTextScore(hexToBytes(res))
+    const res: Uint8Array = xor(hexToBytes(input), key)
+    const score: number = plainTextScore(res)
 
     if (score > highPhrase.score) {
       highPhrase.score = score
-      highPhrase.hex = res
+      highPhrase.val = res
     }
   }
 
   console.log({
     score: highPhrase.score,
-    phrase: Buffer.from(highPhrase.hex, 'hex').toString('ascii')
+    phrase: Buffer.from(highPhrase.val).toString('ascii')
   })
 }
 

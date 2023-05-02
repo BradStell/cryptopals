@@ -80,9 +80,9 @@ async function start() {
           highPhrase.key_byte = i
         }
       }
-      // console.log(highPhrase)
+
       repeating_key_xor_key[pos++] = highPhrase.key_byte
-      highPhrase = { score: -Infinity, value: '', key_byte: 0x00 }
+      highPhrase = { score: Infinity, value: '', key_byte: 0x00 }
     }
 
     console.log(repeating_key_xor_key)

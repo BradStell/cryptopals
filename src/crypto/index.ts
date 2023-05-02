@@ -129,6 +129,84 @@ export function xor(left: Uint8Array, right: Uint8Array): Uint8Array {
   return out
 }
 
+const avg_word_char_map: Record<number, number> = {
+  10: 0,
+  20: 0,
+  28: 0,
+  29: 0,
+  32: 0.16906326262436644,
+  33: 0.00003754458419373005,
+  36: 0.0004880795945184907,
+  39: 0.0010512483574244415,
+  40: 0.00026281208935611036,
+  41: 0.00026281208935611036,
+  44: 0.01302797071522433,
+  45: 0.0016519617045241224,
+  46: 0.00788436268068331,
+  48: 0.001989862962267693,
+  49: 0.0012389712783930917,
+  50: 0.0006382579312934109,
+  51: 0.0009761591890369814,
+  52: 0.0006007133470996808,
+  53: 0.0006007133470996808,
+  54: 0.0005256241787122207,
+  55: 0.0004129904261310306,
+  56: 0.0007884362680683311,
+  57: 0.0005256241787122207,
+  58: 0.0000750891683874601,
+  59: 0.0008259808522620612,
+  65: 0.0018772292096865028,
+  66: 0.000713347099680871,
+  67: 0.0023653088042049934,
+  68: 0.0006007133470996808,
+  69: 0.00045053501032476064,
+  70: 0.00045053501032476064,
+  71: 0.0004129904261310306,
+  72: 0.0016895062887178525,
+  73: 0.0009386146048432514,
+  74: 0.0004129904261310306,
+  75: 0.00011263375258119016,
+  76: 0.000675802515487141,
+  77: 0.0016895062887178525,
+  78: 0.00037544584193730055,
+  79: 0.0006007133470996808,
+  80: 0.0011263375258119017,
+  81: 0.00003754458419373005,
+  82: 0.0005256241787122207,
+  83: 0.0030411113196921343,
+  84: 0.004317627182278956,
+  85: 0.0000750891683874601,
+  86: 0.00022526750516238032,
+  87: 0.0012389712783930917,
+  89: 0.00003754458419373005,
+  97: 0.0622113760090107,
+  98: 0.010662661911019335,
+  99: 0.02256429510043176,
+  100: 0.02752018021400413,
+  101: 0.1045616669795382,
+  102: 0.01978599587009574,
+  103: 0.01441712033039234,
+  104: 0.04824479068894312,
+  105: 0.0549652712596208,
+  106: 0.0008259808522620612,
+  107: 0.003491646330016895,
+  108: 0.02782053688755397,
+  109: 0.017270508729115824,
+  110: 0.051060634503472875,
+  111: 0.060146423878355545,
+  112: 0.014079219072648771,
+  113: 0.0010512483574244415,
+  114: 0.05203679369250985,
+  115: 0.05008447531443589,
+  116: 0.07846818096489581,
+  117: 0.019635817533320818,
+  118: 0.006570302233902759,
+  119: 0.011788999436831238,
+  120: 0.0011263375258119017,
+  121: 0.012089356110381078,
+  122: 0.0006007133470996808,
+}
+
 /**
  * Things to score:
  *  • needs to have spaces
@@ -144,6 +222,10 @@ export function xor(left: Uint8Array, right: Uint8Array): Uint8Array {
  *  • check character frequency map
  */
 export function plainTextScore(bytes: Uint8Array): number {
+  const char_map = buildCharFreqMap(bytes)
+  const df = compareCharFreqMaps(char_map, avg_word_char_map)
+  return df
+
   let score: number = 1
 
   // only printable ascii characters
@@ -215,6 +297,65 @@ export function plainTextScore(bytes: Uint8Array): number {
   }
 
   return score
+}
+
+function compareCharFreqMaps(compare: Record<number, number>, toBase: Record<number, number>): number {
+  // get sum to base the percentages off of
+  const compare_sum: number = Object.keys(compare).reduce((total: number, key: string): number => (
+    total + compare[+key]
+  ), 0)
+  const base_sum: number = Object.keys(toBase).reduce((total: number, key: string): number => (
+    total + toBase[+key]
+  ), 0)
+
+  // convert to percentages
+  const compare_percents: Record<number, number> = {}
+  for (const byte in compare) {
+    compare_percents[byte] = compare[+byte] / compare_sum
+  }
+  const base_percents: Record<number, number> = {}
+  for (const byte in toBase) {
+    base_percents[byte] = toBase[+byte] / base_sum
+  }
+
+  const diffs: number[] = []
+  for (const key in compare_percents) {
+    // diffs.push(1 - Math.abs((compare_percents[+key] ?? 0) - (base_percents[+key] ?? 0)))
+    const left = compare_percents[+key] ?? 0
+    const right = base_percents[+key] ?? 0
+    const largest = left > right ? left : right
+    const smallest = left < right ? left : right
+    diffs.push(smallest / largest)
+  }
+  return diffs.reduce((total, num) => total + num, 0) / diffs.length
+}
+
+// TODO need to take percentage of whole for each byte data point
+export function buildCharFreqMap(bytes: Uint8Array): Record<number, number> {
+  const freq_map: Record<number, number> = {}
+
+  // total all byte occurances
+  for (const byte of bytes) {
+    if (freq_map[byte]) {
+      freq_map[byte] += 1
+    } else {
+      freq_map[byte] = 1
+    }
+  }
+
+  return freq_map
+
+  // // get sum to base the percentages off of
+  // const sum: number = Object.keys(freq_map).reduce((total: number, key: string): number => (
+  //   total + freq_map[+key]
+  // ), 0)
+
+  // // convert to percentages
+  // for (const byte in freq_map) {
+  //   freq_map[byte] = freq_map[byte] / sum
+  // }
+
+  // return freq_map
 }
 
 export function repeatingKeyXor(phrase: Uint8Array, key: Uint8Array): Uint8Array {

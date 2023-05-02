@@ -14,7 +14,7 @@ function start() {
   const input: string = '1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736'
 
   const highPhrase: Phrase = {
-    score: 0,
+    score: -Infinity,
     val: new Uint8Array()
   }
 

@@ -15,32 +15,40 @@ async function start() {
   const message_as_base64: string = await readFile("src/resources/6.txt", 'ascii')
   const message: Uint8Array = Buffer.from(message_as_base64, 'base64')
 
-  
   // Let KEYSIZE be the guessed length of the key; try values from 2 to (say) 40.
   // For each KEYSIZE, take the first KEYSIZE worth of bytes, and the second KEYSIZE worth of bytes.
   let smallest_edit_dist: number = Infinity
   let block_len: number = 2
   for (let key_size = 2; key_size < 40; key_size++) {
-    const first = new Uint8Array(key_size)
-    const second = new Uint8Array(key_size)
+    // only go up to an even number of keysizes
+    const evenStopPoint: number = (message.length - (message.length % key_size))
+    const edit_distances: number[] = []
 
-    // grab first key_size and second key_size worth of bytes of the cipher text bytes
-    for (let i = 0; i < key_size; i++) {
-      first[i] = message[i]
-      second[i] = message[i+key_size]
+    for (let b = 0; b < evenStopPoint; b += (key_size*2)) {
+      const first = new Uint8Array(key_size)
+      const second = new Uint8Array(key_size)
+
+      // grab first key_size and second key_size worth of bytes of the cipher text bytes
+      for (let m = b, i = 0; m < (b+key_size); m++, i++) {
+        first[i] = message[m]
+        second[i] = message[m+key_size]
+      }
+
+      // Find the edit distance between them. Normalize this result by dividing by KEYSIZE
+      const normalized_edit_dist: number = hammingDist(first, second) / key_size
+      edit_distances.push(normalized_edit_dist)
     }
 
-    // Find the edit distance between them. Normalize this result by dividing by KEYSIZE
-    const normalized_edit_dist: number = hammingDist(first, second) / key_size
+    // average all normalized edit distances
+    const avg_normalized_edit_dist = edit_distances.reduce((total, dist) => total + dist, 0) / edit_distances.length
 
     // The KEYSIZE with the smallest normalized edit distance is probably the key
-    if (normalized_edit_dist < smallest_edit_dist) {
-      smallest_edit_dist = normalized_edit_dist
+    if (avg_normalized_edit_dist < smallest_edit_dist) {
+      smallest_edit_dist = avg_normalized_edit_dist
       block_len = key_size
     }
   }
 
-  block_len = 29
   console.log(`block size: ${block_len}`)
 
   // Now that you probably know the KEYSIZE: break the ciphertext into blocks of KEYSIZE length.

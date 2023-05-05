@@ -222,11 +222,11 @@ const avg_word_char_map: Record<number, number> = {
  *  • check character frequency map
  */
 export function plainTextScore(bytes: Uint8Array): number {
-  const char_map = buildCharFreqMap(bytes)
-  const df = compareCharFreqMaps(char_map, avg_word_char_map)
-  return df
+  // const char_map = buildCharFreqMap(bytes)
+  // const df = compareCharFreqMaps(char_map, avg_word_char_map)
+  // return df
 
-  let score: number = 1
+  let score: number = 0
 
   // only printable ascii characters
   // The first 32 characters in the ASCII-table are unprintable control codes and are used to control peripherals such as printers. 
@@ -241,39 +241,39 @@ export function plainTextScore(bytes: Uint8Array): number {
     // non printable characters
     // 9 10 and 13 should be excluded
     if (0 <= byte && byte <= 31 && byte !== 9 && byte !== 10 && byte !== 13) {
-      characterMult += -10
+      characterMult -= 100
     }
 
     // 48 - 57 are numbers
     else if (48 <= byte && byte <= 57) {
-      characterMult += 0.1
+      characterMult += 0.2
     }
 
     // 65 - 90 are cap letters
     else if (65 <= byte && byte <= 90) {
-      characterMult += 3
+      characterMult += 1
     }
 
     // 97 - 122 low letters
     else if (97 <= byte && byte <= 122) {
-      characterMult += 10
+      characterMult += 2
     }
 
     // space
     else if (byte === 32) {
-      characterMult += 4
+      characterMult += 1
     }
 
     // printable characters (keyboard chars)
     else if (33 <= byte && byte <= 126) {
-      characterMult += 0.1
+      characterMult -= 1
     }
 
     else if (127 <= byte && byte <= 255) {
-      characterMult += 0.01
+      characterMult -= 10
     }
   }
-  score *= characterMult
+  score += characterMult
 
   // ratio of spaces to phrase size
   // 6 / 34 = 0.17647058823529413
@@ -281,20 +281,20 @@ export function plainTextScore(bytes: Uint8Array): number {
   // 104 / 585 = 0.17777777777777778
   // 2,697 / 14,966 = 0.18020847253775224
   // 1.65 - 1.85
-  let numSpaces: number = 0
-  for (const byte of bytes) {
-    if (byte === 32) {
-      numSpaces++
-    }
-  }
+  // let numSpaces: number = 0
+  // for (const byte of bytes) {
+  //   if (byte === 32) {
+  //     numSpaces++
+  //   }
+  // }
 
-  const spaceToSizeRatio = numSpaces / bytes.length
-  if (.165 <= spaceToSizeRatio && spaceToSizeRatio <= .185) {
-    // in the golden ratio
-    score *= 10
-  } else {
-    // score *= 0.85
-  }
+  // const spaceToSizeRatio = numSpaces / bytes.length
+  // if (.165 <= spaceToSizeRatio && spaceToSizeRatio <= .185) {
+  //   // in the golden ratio
+  //   score *= 10
+  // } else {
+  //   // score *= 0.85
+  // }
 
   return score
 }
@@ -361,7 +361,7 @@ export function buildCharFreqMap(bytes: Uint8Array): Record<number, number> {
 export function repeatingKeyXor(phrase: Uint8Array, key: Uint8Array): Uint8Array {
   const out = new Uint8Array(phrase.length)
   for (let i = 0; i < phrase.length; i++) {
-    out[i] = phrase[i] ^ key[i % 3]
+    out[i] = phrase[i] ^ key[i % key.length]
   }
 
   return out

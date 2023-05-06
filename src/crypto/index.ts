@@ -84,8 +84,17 @@ export function strToBytes(str: string): Uint8Array {
 }
 
 /**
- * base64 characters in index locations
+ * Encodes a series of bytes into their ascii code characters as a string
  */
+export function bytesToStr(bytes: Uint8Array): string {
+  let out: string = ''
+  for (let i = 0; i < bytes.length; i++) {
+    out += String.fromCharCode(bytes[i])
+  }
+  return out
+}
+
+// base64 characters in index locations
 const base64IndexMap: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
 /**
@@ -93,31 +102,123 @@ const base64IndexMap: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv
  */
 export function toBase64(bytes: Uint8Array): string {
   let outString: string = ''
-  const divBy3Len = Math.floor((bytes.length / 3)) * 3
+  const divBy3Len = Math.floor(bytes.length / 3) * 3
 
   let i: number
   for (i = 0; i < divBy3Len; i+=3) {
+    // no padding bytes
+    //
+    // ascii            |   S           u           n
+    // decimal          |   83          117         110
+    // 8 bit parts      |   010100|11   0111|0101   01|101110
+    // 6 bit parts      |   010100      110111      010101      101110
+    // decimal          |   20          55          21          46
+    // base64 chars     |   U           3           V           u
+    //
     outString += base64IndexMap[bytes[i] >> 2]
     outString += base64IndexMap[((bytes[i] & 0x03) << 4) | ((bytes[i+1] & 0xF0) >> 4)]
     outString += base64IndexMap[((bytes[i+1] & 0x0F) << 2) | ((bytes[i+2] & 0xC0) >> 6)]
     outString += base64IndexMap[bytes[i+2] & 0x3F]
   }
 
-  const remBytes = bytes.length - divBy3Len
-  if (remBytes === 2) {
-    i = bytes.length - 2
-    outString += base64IndexMap[bytes[i] >> 2]
-    outString += base64IndexMap[((bytes[i] & 0x03) << 4) | ((bytes[i+1] & 0xF0) >> 4)]
-    outString += base64IndexMap[((bytes[i+1] & 0x0F) << 2)]
-    outString += '='
-  } else if (remBytes === 1) {
+  const num_padding_bytes = 3 - (bytes.length - divBy3Len)
+
+  // double padding bytes `= =`
+  //
+  // ascii            |   S
+  // decimal          |   83
+  // 8 bit parts      |   010100|11
+  // 6 bit parts      |   010100      11|0000     000000      000000
+  // decimal          |   20          48          0           0
+  // base64 chars     |   U           w           =           =
+  //
+  if (num_padding_bytes === 2) {
     i = bytes.length - 1
     outString += base64IndexMap[bytes[i] >> 2]
     outString += base64IndexMap[((bytes[i] & 0x03) << 4)]
     outString += '=='
   }
 
+  // single padding byte `=`
+  //
+  // ascii            |   S            u
+  // decimal          |   83           117
+  // 8 bit parts      |   010100|11    0111|0101
+  // 6 bit parts      |   010100       11|0111       0101|00       000000
+  // base64 chars     |   U            3             U             =
+  // decimal          |   20           55            20            0
+  //
+  else if (num_padding_bytes === 1) {
+    i = bytes.length - 2
+    outString += base64IndexMap[bytes[i] >> 2]
+    outString += base64IndexMap[((bytes[i] & 0x03) << 4) | ((bytes[i+1] & 0xF0) >> 4)]
+    outString += base64IndexMap[((bytes[i+1] & 0x0F) << 2)]
+    outString += '='
+  }
+
   return outString
+}
+
+export function fromBase64(str: string): Uint8Array {
+  // bytes -> base64 | 3 bytes -> 4 chars
+  // base64 -> bytes | 4 chars -> 3 bytes
+  const out = new Uint8Array((str.length / 4) * 3)
+  for (let i = 0; i < str.length; i+=4) {
+    const a: number = base64IndexMap.indexOf(str[i])
+    const b: number = base64IndexMap.indexOf(str[i+1])
+    let c: number = base64IndexMap.indexOf(str[i+2])
+    let d: number = base64IndexMap.indexOf(str[i+3])
+
+    c = c !== -1 ? c : 61
+    d = d !== -1 ? d : 61
+
+    // double padding bytes `= =`
+    //
+    // base64 chars     |   U           w           =           =
+    // decimal          |   20          48          0           0
+    // 6 bit parts      |   010100      11|0000     000000      000000
+    // 8 bit parts      |   010100|11
+    // decimal          |   83
+    // ascii            |   S
+    //
+    if (c === 61 && d === 61) {
+      out[i] = (a << 2) | ((b & 0x30)  >> 4)
+
+      return out.slice(0, out.length - 2)
+    }
+
+    // single padding byte `=`
+    //
+    // base64 chars     |   U            3             U             =
+    // decimal          |   20           55            20            0
+    // 6 bit parts      |   010100       11|0111       0101|00       000000
+    // 8 bit parts      |   010100|11    0111|0101
+    // decimal          |   83           117
+    // ascii            |   S            u
+    //
+    else if (d === 61) {
+      out[i] = (a << 2) | ((b & 0x30)  >> 4)
+      out[i+1] = ((b & 0x0f) << 4) | ((c & 0x3c) >> 2)
+
+      return out.slice(0, out.length - 1)
+    }
+
+    // no padding bytes
+    //
+    // base64 chars     |   U           3           V           u
+    // decimal          |   20          55          21          46
+    // 6 bit parts      |   010100      110111      010101      101110
+    // 8 bit parts      |   010100|11   0111|0101   01|101110
+    // decimal          |   83          117         110
+    // ascii            |   S           u           n
+    //
+    else {
+      out[i] = (a << 2) | ((b & 0x30)  >> 4)
+      out[i+1] = ((b & 0x0f) << 4) | ((c & 0x3c) >> 2)
+      out[i+2] = ((c & 0x03) << 6) | d
+    }
+  }
+  return out
 }
 
 export function xor(left: Uint8Array, right: Uint8Array): Uint8Array {

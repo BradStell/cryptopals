@@ -163,14 +163,12 @@ export function fromBase64(str: string): Uint8Array {
   // bytes -> base64 | 3 bytes -> 4 chars
   // base64 -> bytes | 4 chars -> 3 bytes
   const out = new Uint8Array((str.length / 4) * 3)
+  let out_index: number = 0
   for (let i = 0; i < str.length; i+=4) {
     const a: number = base64IndexMap.indexOf(str[i])
     const b: number = base64IndexMap.indexOf(str[i+1])
-    let c: number = base64IndexMap.indexOf(str[i+2])
-    let d: number = base64IndexMap.indexOf(str[i+3])
-
-    c = c !== -1 ? c : 61
-    d = d !== -1 ? d : 61
+    const c: number = base64IndexMap.indexOf(str[i+2])
+    const d: number = base64IndexMap.indexOf(str[i+3])
 
     // double padding bytes `= =`
     //
@@ -181,8 +179,8 @@ export function fromBase64(str: string): Uint8Array {
     // decimal          |   83
     // ascii            |   S
     //
-    if (c === 61 && d === 61) {
-      out[i] = (a << 2) | ((b & 0x30)  >> 4)
+    if (c === -1 && d === -1) {
+      out[out_index] = (a << 2) | ((b & 0x30)  >> 4)
 
       return out.slice(0, out.length - 2)
     }
@@ -196,9 +194,9 @@ export function fromBase64(str: string): Uint8Array {
     // decimal          |   83           117
     // ascii            |   S            u
     //
-    else if (d === 61) {
-      out[i] = (a << 2) | ((b & 0x30)  >> 4)
-      out[i+1] = ((b & 0x0f) << 4) | ((c & 0x3c) >> 2)
+    else if (d === -1) {
+      out[out_index] = (a << 2) | ((b & 0x30)  >> 4)
+      out[out_index+1] = ((b & 0x0f) << 4) | ((c & 0x3c) >> 2)
 
       return out.slice(0, out.length - 1)
     }
@@ -213,10 +211,12 @@ export function fromBase64(str: string): Uint8Array {
     // ascii            |   S           u           n
     //
     else {
-      out[i] = (a << 2) | ((b & 0x30)  >> 4)
-      out[i+1] = ((b & 0x0f) << 4) | ((c & 0x3c) >> 2)
-      out[i+2] = ((c & 0x03) << 6) | d
+      out[out_index] = (a << 2) | ((b & 0x30)  >> 4)
+      out[out_index+1] = ((b & 0x0f) << 4) | ((c & 0x3c) >> 2)
+      out[out_index+2] = ((c & 0x03) << 6) | d
     }
+
+    out_index += 3
   }
   return out
 }

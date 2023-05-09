@@ -4,7 +4,7 @@
 
 import { readFile } from "node:fs/promises"
 
-import { chunk, hammingDist, plainTextScore, repeatingKeyXor, strToBytes, transpose, xor } from "../crypto"
+import { bytesToStr, chunk, fromBase64, hammingDist, plainTextScore, repeatingKeyXor, strToBytes, transpose, xor } from "../crypto"
 
 async function start() {
   // Write a function to compute the edit distance/Hamming distance between two strings. The Hamming distance is just the number of differing bits. The distance between
@@ -13,7 +13,7 @@ async function start() {
 
   // TODO need to write a fromBase64 method
   const message_as_base64: string = await readFile("src/resources/6.txt", 'ascii')
-  const message: Uint8Array = Buffer.from(message_as_base64, 'base64')
+  const message: Uint8Array = linesToBytes(message_as_base64)
 
   // Let KEYSIZE be the guessed length of the key; try values from 2 to (say) 40.
   // For each KEYSIZE, take the first KEYSIZE worth of bytes, and the second KEYSIZE worth of bytes.
@@ -79,10 +79,24 @@ async function start() {
   }
 
   console.log(`key bytes: ${repeating_key_xor_key}`)
-  console.log(`key ascii: ${Buffer.from(repeating_key_xor_key).toString('ascii')}`)
+  console.log(`key ascii: ${bytesToStr(repeating_key_xor_key)}`)
 
   const decrypted: Uint8Array = repeatingKeyXor(message, repeating_key_xor_key)
-  console.log(Buffer.from(decrypted).toString('ascii'))
+  console.log(bytesToStr(decrypted))
+}
+
+function linesToBytes(message: string): Uint8Array {
+  const lines = message.split('\n')
+  const newlineCount: number = lines.length
+  const out: Uint8Array = new Uint8Array(((message.length - newlineCount) / 4) * 3)
+  let msg_index: number = 0
+  for (const line of lines) {
+    const line_bytes: Uint8Array = fromBase64(line)
+    for (let i = 0; i < line_bytes.length; i++) {
+      out[msg_index++] = line_bytes[i]
+    }
+  }
+  return out
 }
 
 start()

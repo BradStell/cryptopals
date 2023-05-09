@@ -11,7 +11,7 @@ async function start() {
   const hamming_distance: number = hammingDist(strToBytes("this is a test"), strToBytes("wokka wokka!!!"))
   console.log(`hamming distance: ${hamming_distance}`)
 
-  // TODO need to write a fromBase64 method
+  // read cipher text in from file and get bytes
   const message_as_base64: string = await readFile("src/resources/6.txt", 'ascii')
   const message: Uint8Array = linesToBytes(message_as_base64)
 

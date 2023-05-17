@@ -13,7 +13,7 @@ async function start() {
 
   // read cipher text in from file and get bytes
   const message_as_base64: string = await readFile("src/resources/6.txt", 'ascii')
-  const message: Uint8Array = linesToBytes(message_as_base64)
+  const message = fromBase64(message_as_base64.replaceAll('\n', ''))
 
   // Let KEYSIZE be the guessed length of the key; try values from 2 to (say) 40.
   // For each KEYSIZE, take the first KEYSIZE worth of bytes, and the second KEYSIZE worth of bytes.
@@ -83,20 +83,6 @@ async function start() {
 
   const decrypted: Uint8Array = repeatingKeyXor(message, repeating_key_xor_key)
   console.log(bytesToStr(decrypted))
-}
-
-function linesToBytes(message: string): Uint8Array {
-  const lines = message.split('\n')
-  const newlineCount: number = lines.length
-  const out: Uint8Array = new Uint8Array(((message.length - newlineCount) / 4) * 3)
-  let msg_index: number = 0
-  for (const line of lines) {
-    const line_bytes: Uint8Array = fromBase64(line)
-    for (let i = 0; i < line_bytes.length; i++) {
-      out[msg_index++] = line_bytes[i]
-    }
-  }
-  return out
 }
 
 start()

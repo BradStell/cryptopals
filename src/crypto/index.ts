@@ -1,30 +1,4 @@
-/**
- * Maps a hex digit to it's decimal counterpart
- */
-const hexValueLookup: Record<string, number> = {
-  '0': 0,
-  '1': 1,
-  '2': 2,
-  '3': 3,
-  '4': 4,
-  '5': 5,
-  '6': 6,
-  '7': 7,
-  '8': 8,
-  '9': 9,
-  'A': 10,
-  'B': 11,
-  'C': 12,
-  'D': 13,
-  'E': 14,
-  'F': 15,
-  'a': 10,
-  'b': 11,
-  'c': 12,
-  'd': 13,
-  'e': 14,
-  'f': 15,
-}
+const hexValueLookup: string = '0123456789abcdef'
 
 /**
  * Maps a hex string into its bytes
@@ -32,7 +6,7 @@ const hexValueLookup: Record<string, number> = {
 export function hexToBytes(hexStr: string): Uint8Array {
   const bytes: Uint8Array = new Uint8Array(hexStr.length / 2)
   for (let i = 0; i < hexStr.length; i+=2) {
-    bytes[i/2] = (16 * hexValueLookup[hexStr[i]]) + hexValueLookup[hexStr[i+1]]
+    bytes[i/2] = (16 * hexValueLookup.indexOf(hexStr[i])) + hexValueLookup.indexOf(hexStr[i+1])
   }
   return bytes
 }
